@@ -312,29 +312,37 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             ChannelBuilder channelBuilder = ClientUtils.createChannelBuilder(config.values());
             //创建网络连接
             NetworkClient client = new NetworkClient(
+                    //一个链接  空闲多长时间后,就会关闭链接
                     new Selector(config.getLong(ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG), this.metrics, time, "producer", channelBuilder),
                     this.metadata,
                     clientId,
+                    //每个链接最大的待确认请求个数
                     config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION),
+                    //重连重试延时大小
                     config.getLong(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG),
+                    //发送缓存配置
                     config.getInt(ProducerConfig.SEND_BUFFER_CONFIG),
+                    //接受缓存配置
                     config.getInt(ProducerConfig.RECEIVE_BUFFER_CONFIG),
                     this.requestTimeoutMs,
                     time,
                     true);
-            //启动发送请求的线程  -- 用来发送生产者请求
+            //启动发送请求的线程  -- 用来发送生产者请求,放到到队列中
             this.sender = new Sender(client,
                     this.metadata,
                     this.accumulator,
                     config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION) == 1,
                     config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG),
+                    //确认 次数配置
                     (short) parseAcks(config.getString(ProducerConfig.ACKS_CONFIG)),
+                    //重试 次数
                     config.getInt(ProducerConfig.RETRIES_CONFIG),
                     this.metrics,
                     Time.SYSTEM,
                     this.requestTimeoutMs);
             String ioThreadName = "kafka-producer-network-thread" + (clientId.length() > 0 ? " | " + clientId : "");
             //IO 线程 ,其实 也就是绑定了 sender任务内容
+            //启动sender ,sender里包装了 client
             this.ioThread = new KafkaThread(ioThreadName, this.sender, true);
             this.ioThread.start();
 

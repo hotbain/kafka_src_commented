@@ -246,6 +246,7 @@ public class Selector implements Selectable {
             //得到网络连接
             KafkaChannel channel = channelOrFail(connectionId, false);
             try {
+                //一个channel 一个时刻 只能发送一个请求Send对象
                 channel.setSend(send);
             } catch (CancelledKeyException e) {
                 this.failedSends.add(connectionId);
