@@ -134,6 +134,7 @@ public class Sender implements Runnable {
         // okay we stopped accepting requests but there may still be
         // requests in the accumulator or waiting for acknowledgment,
         // wait until these are completed.
+        //如果 还有没有发送的请求或者没有得到回复的请求  那么就会继续发送
         while (!forceClose && (this.accumulator.hasUnsent() || this.client.inFlightRequestCount() > 0)) {
             try {
                 run(time.milliseconds());
@@ -147,6 +148,7 @@ public class Sender implements Runnable {
             this.accumulator.abortIncompleteBatches();
         }
         try {
+            //关闭网络链接
             this.client.close();
         } catch (Exception e) {
             log.error("Failed to close network client", e);
@@ -162,8 +164,10 @@ public class Sender implements Runnable {
      *            The current POSIX time in milliseconds
      */
     void run(long now) {
+        // 集群 信息
         Cluster cluster = metadata.fetch();
         // get the list of partitions with data ready to send
+        //得到 可用的 分区列表
         RecordAccumulator.ReadyCheckResult result = this.accumulator.ready(cluster, now);
 
         // if there are any partitions whose leaders are not known yet, force metadata update
@@ -187,7 +191,7 @@ public class Sender implements Runnable {
             }
         }
 
-        // create produce requests
+        // 得到指定 节点的指定大小的 待发送的记录列表
         Map<Integer, List<RecordBatch>> batches = this.accumulator.drain(cluster,
                                                                          result.readyNodes,
                                                                          this.maxRequestSize,
@@ -216,6 +220,7 @@ public class Sender implements Runnable {
             log.trace("Nodes with data ready to send: {}", result.readyNodes);
             pollTimeout = 0;
         }
+        //构建发送者请求,放入到待确认的请求队列中
         sendProduceRequests(batches, now);
 
         // if some partitions are already ready to be sent, the select time would be 0;
@@ -351,8 +356,10 @@ public class Sender implements Runnable {
             recordsByPartition.put(tp, batch);
         }
 
+        //构建请求构造器
         ProduceRequest.Builder requestBuilder =
                 new ProduceRequest.Builder(acks, timeout, produceRecordsByPartition);
+        //请求完成
         RequestCompletionHandler callback = new RequestCompletionHandler() {
             public void onComplete(ClientResponse response) {
                 handleProduceResponse(response, recordsByPartition, time.milliseconds());
@@ -360,7 +367,9 @@ public class Sender implements Runnable {
         };
 
         String nodeId = Integer.toString(destination);
+        //构建客户端请求
         ClientRequest clientRequest = client.newClientRequest(nodeId, requestBuilder, now, acks != 0, callback);
+        //发送出去-将请求发送到 待确认队列中
         client.send(clientRequest, now);
         log.trace("Sent produce request to {}: {}", nodeId, requestBuilder);
     }

@@ -20,6 +20,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 /**
+ * send 异步转同步的future的.
  * The future result of a record send
  */
 public final class FutureRecordMetadata implements Future<RecordMetadata> {

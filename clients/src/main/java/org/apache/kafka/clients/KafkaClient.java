@@ -64,6 +64,7 @@ public interface KafkaClient extends Closeable {
     boolean connectionFailed(Node node);
 
     /**
+     * 将欲发送的请求放入到队列中. 请求只能发送到 准备好的链接上
      * Queue up the given request for sending. Requests can only be sent on ready connections.
      * @param request The request
      * @param now The current timestamp

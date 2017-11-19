@@ -297,6 +297,7 @@ public class NetworkClient implements KafkaClient {
             }
             // The call to build may also throw UnsupportedVersionException, if there are essential
             // fields that cannot be represented in the chosen version.
+            //构建请求
             request = builder.build();
         } catch (UnsupportedVersionException e) {
             // If the version is not supported, skip sending the request over the wire.
@@ -306,9 +307,11 @@ public class NetworkClient implements KafkaClient {
             ClientResponse clientResponse = new ClientResponse(clientRequest.makeHeader(),
                     clientRequest.callback(), clientRequest.destination(), now, now,
                     false, e, null);
+            //将放弃的请求放到 废弃发送队列里
             abortedSends.add(clientResponse);
             return;
         }
+        //创建请求头
         RequestHeader header = clientRequest.makeHeader();
         if (log.isDebugEnabled()) {
             int latestClientVersion = ProtoUtils.latestVersion(clientRequest.apiKey().id);
@@ -319,7 +322,9 @@ public class NetworkClient implements KafkaClient {
                     header.apiVersion(), request, nodeId);
             }
         }
+        //  构建网络发送对象-NetworkSend implements Send
         Send send = request.toSend(nodeId, header);
+        //发送出去 没有得到确认的请求
         InFlightRequest inFlightRequest = new InFlightRequest(
                 header,
                 clientRequest.createdTimeMs(),
@@ -329,7 +334,9 @@ public class NetworkClient implements KafkaClient {
                 isInternalRequest,
                 send,
                 now);
+        //放到待确认的请求队列中
         this.inFlightRequests.add(inFlightRequest);
+        //发起网络请求
         selector.send(inFlightRequest.send);
     }
 

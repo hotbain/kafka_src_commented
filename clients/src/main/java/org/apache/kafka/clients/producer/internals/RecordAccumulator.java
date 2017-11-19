@@ -168,10 +168,12 @@ public final class RecordAccumulator {
         appendsInProgress.incrementAndGet();
         try {
             // check if we have an in-progress batch
+            //得到或创建当前topic的 双端队列
             Deque<RecordBatch> dq = getOrCreateDeque(tp);
             synchronized (dq) {
                 if (closed)
                     throw new IllegalStateException("Cannot send after the producer is closed.");
+                // 追加到双端队列
                 RecordAppendResult appendResult = tryAppend(timestamp, key, value, callback, dq);
                 if (appendResult != null)
                     return appendResult;
@@ -525,6 +527,7 @@ public final class RecordAccumulator {
     }
 
     public void mutePartition(TopicPartition tp) {
+        //不可修改的数据
         muted.add(tp);
     }
 
@@ -539,7 +542,8 @@ public final class RecordAccumulator {
         this.closed = true;
     }
 
-    /*
+    /**
+     * 生产者 send后得到的结果
      * Metadata about a record just appended to the record accumulator
      */
     public final static class RecordAppendResult {

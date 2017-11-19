@@ -34,6 +34,7 @@ public class KafkaThread extends Thread {
 
     private void configureThread(final String name, boolean daemon) {
         setDaemon(daemon);
+        //将未检查异常 设置为 直接打印信息,防止 运行线程直接死亡
         setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread t, Throwable e) {
                 log.error("Uncaught exception in " + name + ": ", e);

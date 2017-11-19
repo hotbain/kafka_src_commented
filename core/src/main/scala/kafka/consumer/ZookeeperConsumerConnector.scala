@@ -620,6 +620,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
       info("Releasing partition ownership")
       for ((topic, infos) <- localTopicRegistry) {
         for(partition <- infos.keys) {
+          //从ZK中删除分区所有权
           deletePartitionOwnershipFromZK(topic, partition)
         }
         removeMetric("OwnedPartitionsCount", ownedPartitionsCountMetricTags(topic))
@@ -690,6 +691,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
          * But if we don't stop the fetchers first, this consumer would continue returning data for released
          * partitions in parallel. So, not stopping the fetchers leads to duplicate data.
          */
+        //停止数据拉取线程
         closeFetchers(cluster, kafkaMessageAndMetadataStreams, myTopicThreadIdsMap)
         if (consumerRebalanceListener != null) {
           info("Invoking rebalance listener before relasing partition ownerships.")
@@ -702,6 +704,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
               ).toMap.asJava.asInstanceOf[java.util.Map[String, java.util.Set[java.lang.Integer]]]
           )
         }
+        //释放分区所有者关系
         releasePartitionOwnership(topicRegistry)
         val assignmentContext = new AssignmentContext(group, consumerIdString, config.excludeInternalTopics, zkUtils)
         val globalPartitionAssignment = partitionAssignor.assign(assignmentContext)
@@ -765,6 +768,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
                 partitionAssigmentMapForCallback.asJava
               )
             }
+            //重启消息拉取线程
             updateFetcher(cluster)
             true
           } else {

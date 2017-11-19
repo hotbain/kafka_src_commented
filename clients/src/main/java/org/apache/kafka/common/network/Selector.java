@@ -243,6 +243,7 @@ public class Selector implements Selectable {
         if (closingChannels.containsKey(connectionId))
             this.failedSends.add(connectionId);
         else {
+            //得到网络连接
             KafkaChannel channel = channelOrFail(connectionId, false);
             try {
                 channel.setSend(send);

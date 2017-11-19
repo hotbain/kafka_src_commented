@@ -93,8 +93,10 @@ public class ConsumerNetworkClient implements Closeable {
     public RequestFuture<ClientResponse> send(Node node, AbstractRequest.Builder<?> requestBuilder) {
         long now = time.milliseconds();
         RequestFutureCompletionHandler completionHandler = new RequestFutureCompletionHandler();
+        //创建请求
         ClientRequest clientRequest = client.newClientRequest(node.idString(), requestBuilder, now, true,
                 completionHandler);
+        //放到node的请求等待队列中
         put(node, clientRequest);
 
         // wakeup the client in case it is blocking in poll so that we can send the queued request
@@ -104,6 +106,7 @@ public class ConsumerNetworkClient implements Closeable {
 
     private void put(Node node, ClientRequest request) {
         synchronized (this) {
+            //得到当前node 没有发送的请求队列
             List<ClientRequest> nodeUnsent = unsent.get(node);
             if (nodeUnsent == null) {
                 nodeUnsent = new ArrayList<>();
